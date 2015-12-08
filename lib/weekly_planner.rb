@@ -4,6 +4,7 @@
 
 require 'date'
 require 'dynarex'
+require 'fileutils'
 
 
 class WeeklyPlanner
@@ -25,8 +26,50 @@ class WeeklyPlanner
   end
   
   def save(filename=@filename)
+    
     s = File.basename(filename) + "\n" + @s.lines[1..-1].join
     File.write File.join(@path, filename), s
+    
+    # archive the weekly planner
+    # e.g. weeklyplanner/2015/wp50.xml
+    d = Date.strptime(@dx.all.first.id, "%Y%m%d")
+    archive_path = File.join(@path, d.year.to_s)
+    FileUtils.mkdir_p archive_path
+    
+    a = @dx.all.partition {|x| Date.strptime(x.id, "%Y%m%d").cweek == d.cweek }
+
+    a.each do |rows|
+      
+      filename = "wp%s.xml" % Date.strptime(rows.first.id, "%Y%m%d").cweek
+      filepath = File.join(archive_path, filename)
+      
+      if File.exists? filepath then
+        
+        dx = Dynarex.new filepath
+        
+        rows.each do |row|
+          
+          record = dx.find_by_id row.id
+          
+          if record then
+            record.x = row.x unless record.x == row.x
+          else
+            dx.create row
+          end
+        end
+        
+        dx.save filepath
+        
+      else
+        
+        dx = Dynarex.new 'sections[title]/section(x)'
+        rows.each {|row| dx.create row }
+        dx.save filepath        
+         
+      end
+            
+    end
+    
   end
   
   def to_s()
@@ -71,7 +114,7 @@ class WeeklyPlanner
       heading = "# %s\n" % (d + i).strftime("%d-%b-%Y")
 
       a.shift # removes the dashed line
-      content = a.join
+      content = a.join.rstrip
       dx.create({x: heading + content}, id: (d + i).strftime("%Y%m%d"))
 
     end
