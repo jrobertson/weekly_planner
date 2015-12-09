@@ -7,6 +7,7 @@ require 'dynarex'
 require 'fileutils'
 
 
+
 class WeeklyPlanner
   
   attr_reader :to_s
@@ -16,8 +17,37 @@ class WeeklyPlanner
     @filename, @path = filename, path
     
     fpath = File.join(path, filename)
-    @s = File.exists?(fpath) ? File.read(fpath) :  create()    
-    @dx = create_dx(@s)
+    
+    if File.exists?(fpath) then
+      
+      s = File.read(fpath)
+      @dx = import_to_dx(s)
+      archive()         
+      
+      # purge any past dates
+      while Date.parse(@dx.all.first.id, "%Y%m%d") != DateTime.now.to_date \
+                                                      and @dx.all.length > 0 do
+        @dx.all.first.delete
+        
+      end
+      
+      # new days to add?
+      len = 7 - @dx.all.length
+      
+      if len > 0 then
+        
+        date = Date.strptime(@dx.all.last.id, "%Y%m%d") + 1
+        
+        len.times.with_index do |row, i|
+          @dx.create({x: (date + i).strftime("# %d-%b-%Y\n\n")}, \
+                                             id: (date + i).strftime("%Y%m%d"))
+        end
+        
+      end
+    
+    else      
+      @dx = new_dx
+    end
     
   end
 
@@ -27,8 +57,20 @@ class WeeklyPlanner
   
   def save(filename=@filename)
     
-    s = File.basename(filename) + "\n" + @s.lines[1..-1].join
+    s = File.basename(filename) + "\n" + dx_to_s(@dx).lines[1..-1].join
     File.write File.join(@path, filename), s
+    
+    archive()
+    
+  end
+  
+  def to_s()
+    dx_to_s @dx
+  end
+
+  private
+  
+  def archive()
     
     # archive the weekly planner
     # e.g. weeklyplanner/2015/wp50.xml
@@ -58,6 +100,7 @@ class WeeklyPlanner
           end
         end
         
+        dx.sort_by! {|x| x.attributes[:id].to_i}
         dx.save filepath
         
       else
@@ -68,36 +111,10 @@ class WeeklyPlanner
          
       end
             
-    end
-    
+    end    
   end
   
-  def to_s()
-    @s
-  end
-
-  private
-  
-  def create()
-    
-    d = DateTime.now
-
-    def ordinal(n)
-      n.to_s + ( (10...20).include?(n) ? 'th' : \
-                      %w{ th st nd rd th th th th th th }[n % 10] )
-    end
-
-    a = []
-    a <<  "%s, %s %s" % [Date::DAYNAMES[d.wday], ordinal(d.day), 
-                                                Date::ABBR_MONTHNAMES[d.month]]
-    a += (d+1).upto(d+6).map {|date|  Date::ABBR_DAYNAMES[date.wday] }
-
-    a2 = a.map {|x| "%s\n%s" % [x, '-' * x.length]}
-    title = File.basename(@filename)
-    s = title + "\n" + "=" * title.length + "\n\n%s\n\n" % [a2.join("\n\n")]
-  end
-  
-  def create_dx(s)
+  def import_to_dx(s)
     
     rows = s.split(/.*(?=^[\w, ]+\n\-+)/)
 
@@ -123,6 +140,49 @@ class WeeklyPlanner
     
   end
   
-  def parse()
+  def dx_to_s(dx)
+
+    def format_row(heading, content)
+      content.prepend "\n\n" unless content.empty?
+      "%s\n%s%s" % [heading, '-' * heading.length, content]
+    end
+
+    def ordinal(n)
+      n.to_s + ( (10...20).include?(n) ? 'th' : \
+                      %w{ th st nd rd th th th th th th }[n % 10] )
+    end
+
+    row1 = dx.all.first
+    d = Date.strptime(row1.id, "%Y%m%d")
+    heading =  "%s, %s %s" % [Date::DAYNAMES[d.wday], ordinal(d.day), 
+                                                Date::ABBR_MONTHNAMES[d.month]]
+    rows = [format_row(heading, row1.x.lines[1..-1].join.strip)]
+
+    rows += dx.all[1..-1].map do |row|
+      date = Date.strptime(row.id, "%Y%m%d")    
+      dayname = Date::ABBR_DAYNAMES[date.wday]
+      format_row dayname, row.x.lines[1..-1].join.strip
+    end
+
+    title = File.basename(@filename)
+    title + "\n" + "=" * title.length + "\n\n%s\n\n" % [rows.join("\n\n")]
+
   end
+  
+  def new_dx()
+    
+    dx = Dynarex.new 'sections[title]/section(x)'
+
+    d = DateTime.now
+    dx.title = "Weekly Planner (%s)" % (d).strftime("%d-%b-%Y")
+
+    (d).upto(d+6) do |date|  
+      
+      dx.create({x: date.strftime("# %d-%b-%Y\n\n")}, \
+                                                   id: date.strftime("%Y%m%d"))
+    end
+
+    return dx
+  end
+
 end
