@@ -7,6 +7,14 @@ require 'dynarex'
 require 'fileutils'
 
 
+class RecordX
+  
+  def last_modified
+    v = @last_modified
+    v.empty? ? nil : Date.parse(v)
+  end
+  
+end
 
 class WeeklyPlanner
   
@@ -19,10 +27,10 @@ class WeeklyPlanner
     fpath = File.join(path, filename)
     
     if File.exists?(fpath) then
-      
-      s = File.read(fpath)
-      @dx = import_to_dx(s)
-      archive()         
+
+      dx = import_to_dx(File.read(fpath))
+      @dx = refresh File.join(path, filename.sub(/\.txt$/,'.xml')), dx
+      sync_archive()         
       
       # purge any past dates
       while Date.parse(@dx.all.first.id, "%Y%m%d") != DateTime.now.to_date \
@@ -43,6 +51,8 @@ class WeeklyPlanner
                                              id: (date + i).strftime("%Y%m%d"))
         end
         
+        sync_archive @dx.all[-(len)..-1]
+        
       end
     
     else      
@@ -59,8 +69,9 @@ class WeeklyPlanner
     
     s = File.basename(filename) + "\n" + dx_to_s(@dx).lines[1..-1].join
     File.write File.join(@path, filename), s
+    @dx.save File.join(@path, filename.sub(/\.txt$/,'.xml'))
     
-    archive()
+    sync_archive()
     
   end
   
@@ -70,15 +81,15 @@ class WeeklyPlanner
 
   private
   
-  def archive()
+  def sync_archive(dxrows=@dx.all)
     
     # archive the weekly planner
     # e.g. weeklyplanner/2015/wp50.xml
-    d = Date.strptime(@dx.all.first.id, "%Y%m%d")
+    d = Date.strptime(dxrows.first.id, "%Y%m%d")
     archive_path = File.join(@path, d.year.to_s)
     FileUtils.mkdir_p archive_path
     
-    a = @dx.all.partition {|x| Date.strptime(x.id, "%Y%m%d").cweek == d.cweek }
+    a = dxrows.partition {|x| Date.strptime(x.id, "%Y%m%d").cweek == d.cweek }
 
     a.each do |rows|
       
@@ -94,7 +105,20 @@ class WeeklyPlanner
           record = dx.find_by_id row.id
           
           if record then
-            record.x = row.x unless record.x == row.x
+            
+            if record.x != row.x then
+              
+              if record.last_modified.nil? then
+                record.x = row.x
+              elsif row.last_modified.nil?
+                row.x = record.x
+              elsif row.last_modified > record.last_modified
+                record.x = row.x
+              else
+                row.x = record.x
+              end
+            end
+            
           else
             dx.create row
           end
@@ -183,6 +207,18 @@ class WeeklyPlanner
     end
 
     return dx
+  end
+  
+  def refresh(dxfilepath, latest_dx)
+
+    dx = Dynarex.new File.read(dxfilepath)
+    
+    dx.all.each.with_index do |row, i|      
+      row.x = latest_dx.all[i].x if row.x != latest_dx.all[i].x
+    end
+    
+    dx
+    
   end
 
 end
