@@ -129,7 +129,7 @@ class WeeklyPlanner
         
       else
         
-        dx = Dynarex.new 'sections[title]/section(x)'
+        dx = Dynarex.new 'week[title]/day(x)'
         rows.each {|row| dx.create row }
         dx.save filepath        
          
@@ -142,7 +142,7 @@ class WeeklyPlanner
     
     rows = s.split(/.*(?=^[\w, ]+\n\-+)/)
 
-    dx = Dynarex.new 'sections[title]/section(x)'
+    dx = Dynarex.new 'week[title]/day(x)'
 
     rows.shift
     d = Date.parse(rows.first.lines.first.chomp)
@@ -195,7 +195,7 @@ class WeeklyPlanner
   
   def new_dx()
     
-    dx = Dynarex.new 'sections[title]/section(x)'
+    dx = Dynarex.new 'week[title]/day(x)'
 
     d = DateTime.now
     dx.title = "Weekly Planner (%s)" % (d).strftime("%d-%b-%Y")
