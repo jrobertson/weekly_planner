@@ -92,7 +92,9 @@ class WeeklyPlanner
     a = dxrows.partition {|x| Date.strptime(x.id, "%Y%m%d").cweek == d.cweek }
 
     a.each do |rows|
-      
+
+      next if rows.empty?
+
       filename = "wp%s.xml" % Date.strptime(rows.first.id, "%Y%m%d").cweek
       filepath = File.join(archive_path, filename)
       
