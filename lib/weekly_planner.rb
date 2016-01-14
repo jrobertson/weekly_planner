@@ -31,9 +31,8 @@ class WeeklyPlanner
       dx = import_to_dx(File.read(fpath))
       @dx = refresh File.join(path, filename.sub(/\.txt$/,'.xml')), dx
       sync_archive()         
-      
       # purge any past dates
-      while Date.parse(@dx.all.first.id, "%Y%m%d") != DateTime.now.to_date \
+      while @dx.all.first and Date.parse(@dx.all.first.id, "%Y%m%d") != DateTime.now.to_date \
                                                       and @dx.all.length > 0 do
         @dx.all.first.delete
         
@@ -42,7 +41,7 @@ class WeeklyPlanner
       # new days to add?
       len = 7 - @dx.all.length
       
-      if len > 0 then
+      if @dx.all.length > 0 and len > 0 then
         
         date = Date.strptime(@dx.all.last.id, "%Y%m%d") + 1
         
@@ -52,6 +51,10 @@ class WeeklyPlanner
         end
         
         sync_archive @dx.all[-(len)..-1]
+        
+      else
+        
+        @dx = new_dx
         
       end
     
@@ -66,7 +69,7 @@ class WeeklyPlanner
   end
   
   def save(filename=@filename)
-    
+# 
     s = File.basename(filename) + "\n" + dx_to_s(@dx).lines[1..-1].join
     File.write File.join(@path, filename), s
     @dx.save File.join(@path, filename.sub(/\.txt$/,'.xml'))
@@ -179,6 +182,7 @@ class WeeklyPlanner
     end
 
     row1 = dx.all.first
+
     d = Date.strptime(row1.id, "%Y%m%d")
     heading =  "%s, %s %s" % [Date::DAYNAMES[d.wday], ordinal(d.day), 
                                                 Date::ABBR_MONTHNAMES[d.month]]
