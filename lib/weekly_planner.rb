@@ -190,8 +190,8 @@ class WeeklyPlanner
 
     rows += dx.all[1..-1].map do |row|
       date = Date.strptime(row.id, "%Y%m%d")    
-      dayname = Date::ABBR_DAYNAMES[date.wday]
-      format_row dayname, row.x.lines[1..-1].join.strip
+      day_title = Date::ABBR_DAYNAMES[date.wday] + ' ' + date.day.to_s
+      format_row day_title, row.x.lines[1..-1].join.strip
     end
 
     title = File.basename(@filename)

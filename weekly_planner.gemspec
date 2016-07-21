@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'weekly_planner'
-  s.version = '0.3.3'
+  s.version = '0.3.4'
   s.summary = 'The weekly_planner gem primarily creates a weekly-planner.txt template file'
   s.authors = ['James Robertson']
   s.files = Dir['lib/weekly_planner.rb']
