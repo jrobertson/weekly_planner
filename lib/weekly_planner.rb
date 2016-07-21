@@ -31,13 +31,14 @@ class WeeklyPlanner
       dx = import_to_dx(File.read(fpath))
       @dx = refresh File.join(path, filename.sub(/\.txt$/,'.xml')), dx
       sync_archive()         
+
       # purge any past dates
       while @dx.all.first and Date.parse(@dx.all.first.id, "%Y%m%d") != DateTime.now.to_date \
                                                       and @dx.all.length > 0 do
         @dx.all.first.delete
         
       end
-      
+
       # new days to add?
       len = 7 - @dx.all.length
       
@@ -52,9 +53,8 @@ class WeeklyPlanner
         
         sync_archive @dx.all[-(len)..-1]
         
-      else
-        
-        @dx = new_dx
+      #jr230716 else
+      #jr230716   @dx = new_dx
         
       end
     
@@ -154,17 +154,17 @@ class WeeklyPlanner
     dx.title = "Weekly Planner (%s)" % (d).strftime("%d-%b-%Y")
 
     rows.each.with_index do |raw_x, i|
-      
+
       a = raw_x.lines
       a.shift
       heading = "# %s\n" % (d + i).strftime("%d-%b-%Y")
 
       a.shift # removes the dashed line
       content = a.join.rstrip
-      dx.create({x: heading + content}, id: (d + i).strftime("%Y%m%d"))
+      dx.create({x: heading + content }, id: (d + i).strftime("%Y%m%d"))
 
     end
-    
+
     return dx
     
   end
