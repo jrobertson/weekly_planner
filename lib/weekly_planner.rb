@@ -20,9 +20,10 @@ class WeeklyPlanner
   
   attr_reader :to_s
 
-  def initialize(filename='weekly-planner.txt', path: '.')
+  def initialize(filename='weekly-planner.txt', 
+                 path: File.dirname(filename), config: {})
     
-    @filename, @path = filename, path
+    @filename, @path = File.basename(filename), File.expand_path(path)
     
     fpath = File.join(path, filename)
     
@@ -61,6 +62,27 @@ class WeeklyPlanner
     else      
       @dx = new_dx
     end
+    
+    # check for monthly-planner entries which 
+    #   should be added to the weekly-planner
+    monthlyplanner_filepath = config[:monthlyplanner_filepath]    
+    
+    if monthlyplanner_filepath then
+
+      mp = MonthlyPlanner.new monthlyplanner_filepath
+      
+      mp.this_week.each do |x|
+
+        i = x.date.day - Date.today.day
+        a = @dx.all[i].x.lines
+        s = "%s %s" % [x.time, x.desc]
+
+        @dx.all[i].x =  (a << s + "\n").join unless a.index s
+
+      end      
+      
+    end
+    
     
   end
 
