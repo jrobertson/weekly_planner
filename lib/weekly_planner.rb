@@ -34,7 +34,8 @@ class WeeklyPlanner
       sync_archive()         
 
       # purge any past dates
-      while @dx.all.first and Date.parse(@dx.all.first.id, "%Y%m%d") != DateTime.now.to_date \
+      while @dx.all.first and \
+          Date.parse(@dx.all.first.id, "%Y%m%d") != DateTime.now.to_date \
                                                       and @dx.all.length > 0 do
         @dx.all.first.delete
         
@@ -53,9 +54,6 @@ class WeeklyPlanner
         end
         
         sync_archive @dx.all[-(len)..-1]
-        
-      #jr230716 else
-      #jr230716   @dx = new_dx
         
       end
     
@@ -77,7 +75,7 @@ class WeeklyPlanner
         a = @dx.all[i].x.lines
         s = "%s %s" % [x.time, x.desc]
 
-        @dx.all[i].x =  (a << s + "\n").join unless a.index s
+        @dx.all[i].x =  (a << s).join("\n")  unless a.grep s
 
       end      
       
