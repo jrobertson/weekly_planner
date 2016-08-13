@@ -18,7 +18,7 @@ end
 
 class WeeklyPlanner
   
-  attr_reader :to_s
+  attr_reader :to_s, :mp
 
   def initialize(filename='weekly-planner.txt', 
                  path: File.dirname(filename), config: {})
@@ -67,7 +67,7 @@ class WeeklyPlanner
     
     if monthlyplanner_filepath then
 
-      mp = MonthlyPlanner.new monthlyplanner_filepath
+      @mp = mp = MonthlyPlanner.new monthlyplanner_filepath
       
       mp.this_week.each do |x|
 
@@ -75,7 +75,7 @@ class WeeklyPlanner
         a = @dx.all[i].x.lines
         s = "%s %s" % [x.time, x.desc]
 
-        @dx.all[i].x =  (a << s).join("\n")  unless a.grep s
+        @dx.all[i].x =  (a << s).join("\n") if a.grep(s).empty?
 
       end      
       
