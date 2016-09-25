@@ -22,15 +22,15 @@ class WeeklyPlanner
 
   def initialize(filename='weekly-planner.txt', 
                  path: File.dirname(filename), config: {})
-    
+
     @filename, @path = File.basename(filename), File.expand_path(path)
     
-    fpath = File.join(path, filename)
-    
+    fpath = File.join(@path, @filename)
+
     if File.exists?(fpath) then
 
       dx = import_to_dx(File.read(fpath))
-      @dx = refresh File.join(path, filename.sub(/\.txt$/,'.xml')), dx
+      @dx = refresh File.join(@path, @filename.sub(/\.txt$/,'.xml')), dx
       sync_archive()         
 
       # purge any past dates
@@ -57,7 +57,8 @@ class WeeklyPlanner
         
       end
     
-    else      
+    else
+
       @dx = new_dx
     end
     
@@ -86,6 +87,10 @@ class WeeklyPlanner
 
   def dx()
     @dx
+  end
+  
+  def find_by_wday(wday)
+    @dx.all.detect {|x| Date.parse(x.id).wday == wday }
   end
   
   def save(filename=@filename)
